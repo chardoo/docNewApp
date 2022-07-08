@@ -1,0 +1,99 @@
+// This is the schema file,
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Merchant {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  password  String
+  name      String?
+  contact   String?
+  location  String
+  image     String
+  startTime DateTime   @default(now()) @db.Time()
+  closeTime DateTime   @default(now()) @db.Time()
+  role      Roles      @default(user)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  status    UserStatus @default(active)
+  Good      Good[]
+
+  MerchantPayment MerchantPayment[]
+}
+
+model Client {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  password  String
+  name      String?
+  contact   String?
+  profile   String
+  role      Roles      @default(user)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  status    UserStatus @default(active)
+  Payment   Payment[]
+}
+
+model Good {
+  id          String    @id @default(uuid())
+  name        String
+  description String
+  Images      String[]
+  price       Decimal?  @default(0)
+  quantity    Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  merchantId  String
+  merchant    Merchant? @relation(fields: [merchantId], references: [id])
+  Payment     Payment[]
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  paymentDate DateTime @default(now())
+  amount      Decimal
+  goodId      String
+  good        Good     @relation(fields: [goodId], references: [id])
+  createdAt   DateTime @default(now()) @db.Date
+  clientId    String
+  client      Client?  @relation(fields: [clientId], references: [id])
+
+}
+
+model MerchantPayment {
+  id          String    @id @default(uuid())
+  amount      Decimal
+  paymentDate String?
+  createdAt   DateTime  @default(now()) @db.Date
+  merchantId  String
+  merchant    Merchant? @relation(fields: [merchantId], references: [id])
+}
+
+enum Roles {
+  superAdmin
+  Admin
+  user
+  merchant
+}
+
+enum Status {
+  active
+  defaulter
+}
+
+enum UserStatus {
+  active
+  inactive
+}
+
+enum DisbursementStatus {
+  active
+  inactive
+}

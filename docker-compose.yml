@@ -1,0 +1,65 @@
+version: "3"
+
+services:
+  database_Service_1:
+    image: postgres:13-alpine
+    restart: on-failure
+    env_file: .env
+    container_name: database_Service_1
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=foodDb
+    ports:
+      - "5432:5432"
+    volumes:
+       - pgdata:/var/lib/postgresql/data
+  
+
+
+  redis_service_dev-delivery:
+    image: redis:6-alpine
+    env_file: .env
+    container_name: redis_service_dev-delivery
+    restart: on-failure
+    ports:
+      - "6379:6379"
+
+  worker_service_dev-delivery:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    # image: banking_dev_v1
+    container_name: worker_service_dev-delivery
+    restart: on-failure
+    entrypoint: ["./entrypoint_worker.sh"]
+    command: ["npm", "run", "start:worker"]
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://postgres:secret@database_Service_1:5432/foodDb?schema=public
+      - REDIS_URL=redis://redis_service_dev-delivery:6379/
+    depends_on:
+      - database_Service_1
+      -  redis_service_dev-delivery
+  
+  
+  api_delivery_service_dev1:
+    depends_on:
+      - database_Service_1
+    build: 
+       context: .
+       dockerfile: Dockerfile.dev
+    restart: on-failure
+    env_file: ./.env
+    ports:
+      - "6000:6000"
+    environment:
+      - REDIS_URL=redis:// redis_service_dev-delivery:6379/
+      - DATABASE_URL=postgresql://postgres:secret@database_Service_1:5432/foodDb?schema=public
+    stdin_open: true
+    tty: true
+    command: ["npm", "run","start"]
+    entrypoint: ["./entrypoint_dev.sh"]
+volumes:
+  pgdata:
